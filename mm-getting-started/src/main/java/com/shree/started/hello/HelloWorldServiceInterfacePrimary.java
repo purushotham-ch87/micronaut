@@ -6,7 +6,7 @@ import jakarta.inject.Singleton;
 @Singleton
 @Primary
 @HelloInterfacePrimaryQualifier
-public class HelloWorldServiceInterfaceInterfacePrimary implements IHelloWorldServiceInterface {
+public class HelloWorldServiceInterfacePrimary implements IHelloWorldServiceInterface {
     @Override
     public String helloFromService() {
         return "Hello World from service Interface Primary Injection";
