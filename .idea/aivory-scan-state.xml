@@ -6,8 +6,8 @@
         <entry key="dev">
           <value>
             <BranchScanInfo>
-              <option name="lastScanTimestamp" value="1784900309971" />
-              <option name="lastScannedCommitHash" value="230b10f6acde9e4d4aa15ec31a217045d9e86252" />
+              <option name="lastScanTimestamp" value="1786053658125" />
+              <option name="lastScannedCommitHash" value="02e4ba894a75c2d3de80888d6400222df01c3a71" />
               <option name="lastScanType" value="INCREMENTAL" />
             </BranchScanInfo>
           </value>
