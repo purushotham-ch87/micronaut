@@ -6,10 +6,11 @@ plugins {
     id("checkstyle")
     id("pmd")
     id("com.github.spotbugs") version "6.5.9"
+    id("org.graalvm.buildtools.native")// version "0.10.6"
 }
 
 version = "0.1"
-group = "com.shree.started"
+group = "com.shree.cloudnative"
 
 
 
@@ -31,13 +32,14 @@ dependencies {
 
 
 application {
-    mainClass = "com.shree.started.Application"
+    mainClass = "com.shree.cloudnative.Application"
 }
 
 java {
     sourceCompatibility = JavaVersion.toVersion("25")
     targetCompatibility = JavaVersion.toVersion("25")
 }
+
 
 spotbugs {
     toolVersion.set("4.10.3")
@@ -69,6 +71,15 @@ graalvmNative {
         }
     }
 }
+/*graalvmNative {
+    binaries {
+        named("main") {
+            buildArgs.add("-H:+SharedArenaSupport")
+            buildArgs.add("--static")
+            buildArgs.add("--libc=musl")
+        }
+    }
+}*/
 
 
 
@@ -78,7 +89,7 @@ micronaut {
     testRuntime("junit5")
     processing {
         incremental(true)
-        annotations("com.shree.started.*")
+        annotations("com.shree.cloudnative.*")
     }
     aot {
         // Please review carefully the optimizations enabled below
@@ -95,12 +106,15 @@ micronaut {
 
 }
 
-tasks.named<io.micronaut.gradle.docker.MicronautDockerfile>("dockerfile") {
+/*tasks.named<io.micronaut.gradle.docker.MicronautDockerfile>("dockerfile") {
 
     baseImage = "eclipse-temurin:25-jre"
+}*/
+
+tasks.named<io.micronaut.gradle.docker.NativeImageDockerfile>("dockerfileNative") {
+    //baseImage.set("mcr.microsoft.com/azurelinux/base/core:3.0")
+    baseImage.set("gcr.io/distroless/base-debian12")
 }
-
-
 
 
 

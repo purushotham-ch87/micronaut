@@ -1,0 +1,23 @@
+# ---------- Build Stage ----------
+FROM bellsoft/liberica-native-image-kit:25-musl AS builder
+
+WORKDIR /workspace
+
+# Install musl toolchain
+RUN microdnf install -y \
+    musl \
+    musl-devel \
+    gcc \
+    gcc-c++ \
+    make
+
+COPY . .
+
+RUN ./gradlew nativeCompile
+
+# ---------- Runtime Stage ----------
+FROM scratch
+
+COPY --from=builder /workspace/build/native/nativeCompile/application /application
+
+ENTRYPOINT ["/application"]

@@ -6,10 +6,11 @@ plugins {
     id("checkstyle")
     id("pmd")
     id("com.github.spotbugs") version "6.5.9"
+    id("org.graalvm.buildtools.native")// version "0.10.6"
 }
 
 version = "0.1"
-group = "com.shree.started"
+group = "com.shree.cloudweb"
 
 
 
@@ -25,13 +26,12 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic")
     testImplementation("io.micronaut:micronaut-http-client")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    compileOnly("com.github.spotbugs:spotbugs-annotations:4.9.3")
     add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
 }
 
-
-
 application {
-    mainClass = "com.shree.started.Application"
+    mainClass = "com.shree.cloudweb.Application"
 }
 
 java {
@@ -61,6 +61,8 @@ tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
     options.compilerArgs.add("-Xlint:unchecked")
 }
 
+
+
 graalvmNative.toolchainDetection = false
 graalvmNative {
     binaries {
@@ -78,7 +80,7 @@ micronaut {
     testRuntime("junit5")
     processing {
         incremental(true)
-        annotations("com.shree.started.*")
+        annotations("com.shree.cloudweb.*")
     }
     aot {
         // Please review carefully the optimizations enabled below
@@ -101,6 +103,10 @@ tasks.named<io.micronaut.gradle.docker.MicronautDockerfile>("dockerfile") {
 }
 
 
+tasks.named<io.micronaut.gradle.docker.NativeImageDockerfile>("dockerfileNative") {
+    //baseImage.set("mcr.microsoft.com/azurelinux/base/core:3.0")
+    baseImage.set("gcr.io/distroless/base-debian12")
+}
 
 
 

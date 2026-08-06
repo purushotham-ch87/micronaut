@@ -1,0 +1,182 @@
+Option 1: The Lambda Strategy (Simplest & Best for Streams)
+---------------------------------------------------------------
+
+Instead of forcing your rules to implement a rigid interface with fixed parameters, you can redefine your rules as simple Predicate<Product> factories. This decouples the rule initialization from the execution stream completely.
+
+1. Define Rules as Functions that Accept Different Parameters
+public class ProductRules {
+    // This rule only cares about name and a case-sensitivity flag
+    public static Predicate<Product> nameMatches(String searchName, boolean caseSensitive) {
+        return product -> searchName == null || searchName.isEmpty() ||
+               (caseSensitive ? product.name().equals(searchName) : product.name().equalsIgnoreCase(searchName));
+    }
+
+    // This rule only cares about min and max prices
+    public static Predicate<Product> priceWithinRange(Integer min, Integer max) {
+        return product -> {
+            boolean matchesMin = (min == null || min == 0) || (product.price() >= min);
+            boolean matchesMax = (max == null || max == 0) || (product.price() <= max);
+            return matchesMin && matchesMax;
+        };
+    }
+
+    // This rule cares about a completely different parameter: Inventory Stock
+    public static Predicate<Product> hasMinimumStock(Integer requiredStock) {
+        return product -> requiredStock == null || product.stockCount() >= requiredStock;
+    }
+}
+
+2. Dynamically Assemble Only the Rules You Need
+In your service layer, look at the incoming payload and add only the relevant rules to your pipeline list.
+public List<Product> search(List<Product> products, String name, Integer min, Integer max, Integer minStock) {
+    List<Predicate<Product>> activeFilters = new ArrayList<>();
+
+    // Instantiate rules with their completely unique parameters
+    if (name != null) activeFilters.add(ProductRules.nameMatches(name, false));
+    if (min != null || max != null) activeFilters.add(ProductRules.priceWithinRange(min, max));
+    if (minStock != null) activeFilters.add(ProductRules.hasMinimumStock(minStock));
+
+    // Execute the stream naturally
+    return products.stream()
+        .filter(product -> activeFilters.stream().allMatch(filter -> filter.test(product)))
+        .toList();
+}
+
+
+Option 2: The Command Pattern with an Open Context Map
+------------------------------------------------------------
+
+Instead of defining a rigid interface for your rules, you can use a command pattern where each rule is a command that takes a context map. This allows you to pass any number of parameters without changing the interface.
+
+If you want to stick strictly to an Object-Oriented Class structure (like class MinPriceRule implements ProductRule), you can replace the rigid SearchCriteria with a generic, extensible RuleContext containing an open-ended map of values.
+
+1. Define a Dynamic Context Object
+import java.util.HashMap;
+import java.util.Map;
+
+public class RuleContext {
+    private final Map<String, Object> parameters = new HashMap<>();
+
+    public void set(String key, Object value) { parameters.put(key, value); }
+
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key, Class<T> type) {
+        return (T) parameters.get(key);
+    }
+}
+
+2. The Rule Interface Now Takes the Generic Context
+interface ProductRule {
+    boolean matches(Product product, RuleContext context);
+}
+
+3. Rules Extract Only Their Specific Parameters Safely
+class NameRule implements ProductRule {
+    public boolean matches(Product p, RuleContext ctx) {
+        String name = ctx.get("searchName", String.class);
+        Boolean caseSensitive = ctx.get("caseSensitive", Boolean.class);
+
+        if (name == null) return true;
+        return caseSensitive ? p.name().equals(name) : p.name().equalsIgnoreCase(name);
+    }
+}
+
+class StockRule implements ProductRule {
+    public boolean matches(Product p, RuleContext ctx) {
+        Integer minStock = ctx.get("requiredStock", Integer.class);
+        return minStock == null || p.stockCount() >= minStock;
+    }
+}
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+When scaling to more than 10 rules, managing them manually via lists, nested ifs, or factories breaks down. It makes your service class bloated and hard to test.The industry standard for managing a large volume of dynamic business rules in Java or Kotlin is to use a Self-Registering Rule Engine managed by Spring Framework (Dependency Injection).By letting Spring find and manage your rules, you can add 10, 20, or 100 rules without changing a single line of execution code.
+
+Step 1: Define a Scalable Rule Interface
+Every rule needs to decide two things: when it should run (based on user input) and what logic to execute.
+public interface ProductFilteringRule {
+    /**
+     * Checks the user's input parameters to see if this specific rule is active.
+     */
+    boolean isActive(SearchCriteria criteria);
+
+    /**
+     * Executes the actual filtering logic against a product.
+     */
+    boolean matches(Product product, SearchCriteria criteria);
+}
+
+
+Step 2: Write Small, Independent Rules (Spring Components)
+Mark each rule with @Component. Spring will automatically find them and add them to a registry.
+@Component
+public class NameRule implements ProductFilteringRule {
+    @Override
+    public boolean isActive(SearchCriteria c) {
+        return c.getName() != null && !c.getName().isEmpty();
+    }
+
+    @Override
+    public boolean matches(Product p, SearchCriteria c) {
+        return p.getName().equalsIgnoreCase(c.getName());
+    }
+}
+
+@Component
+public class MinPriceRule implements ProductFilteringRule {
+    @Override
+    public boolean isActive(SearchCriteria c) {
+        return c.getMinPrice() != null && c.getMinPrice() > 0;
+    }
+
+    @Override
+    public boolean matches(Product p, SearchCriteria c) {
+        return p.getPrice() >= c.getMinPrice();
+    }
+}
+
+@Component
+public class CategoryRule implements ProductFilteringRule {
+    @Override
+    public boolean isActive(SearchCriteria c) {
+        return c.getCategory() != null;
+    }
+
+    @Override
+    public boolean matches(Product p, SearchCriteria c) {
+        return p.getCategory().equalsIgnoreCase(c.getCategory());
+    }
+}
+// Repeat this clean pattern for all 10+ rules (e.g., StockRule, RatingRule, BrandRule)
+
+
+Step 3: Inject and Execute the Engine Natively
+@Service
+public class ProductSearchService {
+
+    // Spring automatically discovers and injects ALL 10+ implemented rules here
+    private final List<ProductFilteringRule> allRules;
+
+    public ProductSearchService(List<ProductFilteringRule> allRules) {
+        this.allRules = allRules;
+    }
+
+    public List<Product> search(List<Product> products, SearchCriteria criteria) {
+
+        // 1. Pre-filter only the rules that the user actually provided inputs for
+        List<ProductFilteringRule> activeRules = allRules.stream()
+                .filter(rule -> rule.isActive(criteria))
+                .toList();
+
+        // 2. Stream through products and evaluate them only against active rules
+        return products.stream()
+                .filter(product -> activeRules.stream().allMatch(rule -> rule.matches(product, criteria)))
+                .toList();
+    }
+}
+
+Why this is perfect for 10+ Rules:
+Open/Closed Principle: To add an 11th rule, you create a new class file with @Component. You do not touch ProductSearchService, SearchCriteria, or existing tests.
+Performance: If a user only searches by name, the engine filters out the other 9+ inactive rules instantly. The product stream only executes the NameRule evaluation logic.
+Isolated Testing: You can write microscopic unit tests for each rule class individually without spinning up complex integration states.If you are scaling up, tell me:

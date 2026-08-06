@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 public class Application {
 
-    public static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
         Micronaut.run(Application.class, args);
