@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AIVoryScanState">
+    <option name="branchScans">
+      <map>
+        <entry key="dev">
+          <value>
+            <BranchScanInfo>
+              <option name="lastScanTimestamp" value="1786053658125" />
+              <option name="lastScannedCommitHash" value="02e4ba894a75c2d3de80888d6400222df01c3a71" />
+              <option name="lastScanType" value="INCREMENTAL" />
+            </BranchScanInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

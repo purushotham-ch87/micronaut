@@ -1,7 +1,11 @@
 plugins {
-    id("io.micronaut.application") version "5.0.2"
-    id("com.gradleup.shadow") version "9.4.1"
-    id("io.micronaut.aot") version "5.0.2"
+    id("io.micronaut.application")// version "5.0.2"
+    id("com.gradleup.shadow")// version "9.4.1"
+    id("io.micronaut.aot")// version "5.0.2"
+    id("jacoco")
+    id("checkstyle")
+    id("pmd")
+    id("com.github.spotbugs") version "6.5.9"
 }
 
 version = "0.1"
@@ -21,6 +25,7 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic")
     testImplementation("io.micronaut:micronaut-http-client")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
 }
 
 
@@ -34,8 +39,27 @@ java {
     targetCompatibility = JavaVersion.toVersion("25")
 }
 
+spotbugs {
+    toolVersion.set("4.10.3")
+    ignoreFailures.set(false)
+    showProgress.set(true)
+    effort.set(com.github.spotbugs.snom.Effort.MAX)
+    excludeFilter.set(file("${projectDir}/config/spotbugs/spotbugs-exclude.xml"))
+    //onlyAnalyze = listOf("com.shree.started.*")
+}
 
+tasks.spotbugsMain {
+    reports {
+        create("html") {
+            required.set(true)
+            outputLocation.set(file("${layout.buildDirectory.get()}/reports/spotbugs/main.html"))
+        }
+    }
+}
 
+tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+    options.compilerArgs.add("-Xlint:unchecked")
+}
 
 graalvmNative.toolchainDetection = false
 graalvmNative {

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <Match>
+        <Class name="~.*\.(\$[^$]+Introspection|\$[^$]+Definition|\$[^$]+Reference)$" />
+    </Match>
+
+    <Match>
+        <Class name="~.*\.(\$[^$]+Definition\$[^$]+|\$[^$]+Intercepted)$" />
+    </Match>
+
+
+
+    <Match>
+        <Class name="~.*\.(\$Serde[^$]+Deserializer|\$Serde[^$]+Serializer)$" />
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP" />
+        <Class name="~.*\$[^$]*" />
+    </Match>
+    <!--
+
+    <Match>
+        <Bug pattern="NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR" />
+    </Match>-->
+    <Match>
+        <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE" />
+        <Class name="~.*\$Introspection$" />
+    </Match>
+    <Match>
+        <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE" />
+        <Class name="~.*\$Definition$" />
+    </Match>
+    <!--<Match>
+        <Bug pattern="DLS_DEAD_LOCAL_STORE" />
+        <Class name="~.*\$Intercepted$" />
+    </Match>-->
+</FindBugsFilter>

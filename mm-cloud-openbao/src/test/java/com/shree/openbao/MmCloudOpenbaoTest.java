@@ -1,4 +1,4 @@
-package com.shree.started;
+package com.shree.openbao;
 
 
 import io.micronaut.runtime.EmbeddedApplication;
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions;
 import jakarta.inject.Inject;
 
 @MicronautTest
-class MmGettingStartedTest {
+class MmCloudOpenbaoTest {
 
     @Inject
     EmbeddedApplication<?> application;

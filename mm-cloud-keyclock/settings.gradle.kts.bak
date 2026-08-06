@@ -1,0 +1,17 @@
+
+
+
+
+
+
+//rootProject.name="mm-cloud-keyclock"
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "micronaut"
+

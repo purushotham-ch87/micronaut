@@ -1,0 +1,169 @@
+name: Build, Add and Push Container Image
+description: Build, add and push a container image to Azure Container Registry (ACR) using Gradle and Docker. This workflow is designed to be reusable and can be called from other workflows.
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Working directory containing the Gradle project
+        required: false
+        type: string
+        default: .
+
+      java-version:
+        description: Java version
+        required: false
+        type: string
+        default: "25"
+
+      java-distribution:
+        description: Java distribution
+        required: false
+        type: string
+        default: "temurin"
+
+      gradle-task:
+        description: Gradle task
+        required: false
+        type: string
+        default: "build"
+
+      dockerfile:
+        description: Dockerfile path
+        required: false
+        type: string
+        default: "Dockerfile"
+
+      image-name:
+        description: Image repository name
+        required: true
+        type: string
+
+      acr-name:
+        description: Azure Container Registry name (without .azurecr.io)
+        required: true
+        type: string
+        default: "crsharedprod87"
+
+      image-tag:
+        description: Image tag
+        required: false
+        type: string
+        default: ""
+
+      outputs:
+        image:
+          description: Full image name
+          value: ${{ jobs.build.outputs.image }}
+
+        image-tag:
+          description: Image tag
+          value: ${{ jobs.build.outputs.image-tag }}
+
+        image-digest:
+          description: Image digest
+          value: ${{ jobs.build.outputs.image-digest }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        outputs:
+          image: ${{ steps.metadata.outputs.image }}
+          image-tag: ${{ steps.metadata.outputs.image-tag }}
+          image-digest: ${{ steps.digest.outputs.digest }}
+
+        defaults:
+          run:
+            shell: bash
+            working-directory: ${{ inputs.working-directory }}
+
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v5
+
+          - name: Setup Java
+            uses: actions/setup-java@v5
+            with:
+              distribution: ${{ inputs.java-distribution }}
+              java-version: ${{ inputs.java-version }}
+
+          - name: Setup Gradle
+            uses: gradle/actions/setup-gradle@v4
+
+          - name: Build Application
+            run: ./gradlew clean ${{ inputs.gradle-task }}
+
+          - name: Azure Login
+            uses: azure/login@v2
+            with:
+              client-id: ${{ secrets.AZURE_CLIENT_ID }}
+              tenant-id: ${{ secrets.ARM_TENANT_ID }}
+              subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+          - name: Login to Azure Container Registry
+            run: |
+              az acr login --name ${{ inputs.acr-name }}
+
+          - name: Generate Image Metadata
+            id: metadata
+            run: |
+              
+              TAG="${{ inputs.image-tag }}"
+              
+              if [ -z "$TAG" ]; then
+                TAG="${GITHUB_SHA}"
+              fi
+              
+              IMAGE="${{ inputs.acr-name }}.azurecr.io/${{ inputs.image-name }}:${TAG}"
+              
+              echo "image=$IMAGE" >> $GITHUB_OUTPUT
+              echo "image-tag=$TAG" >> $GITHUB_OUTPUT
+
+#          - name: Build Docker Image
+#           run: |
+#             docker build \
+#               -f ${{ inputs.dockerfile }} \
+#               -t "${{ steps.metadata.outputs.image }}" \
+#               .
+
+#         - name: Push Docker Image
+#           run: |
+#             docker push "${{ steps.metadata.outputs.image }}"
+
+          - name: Build Container Image
+            run: |
+              ./gradlew dockerBuild \
+                -PimageName=${{ inputs.image-name }} \
+                -PimageTag=${{ steps.metadata.outputs.image-tag }}
+
+          - name: Push Container Image
+            run: |
+              ./gradlew dockerPush \
+                -PimageName=${{ inputs.image-name }} \
+                -PimageTag=${{ steps.metadata.outputs.image-tag }}
+
+          - name: Get Image Digest
+            id: digest
+            run: |
+              
+              DIGEST=$(docker image inspect \
+                "${{ steps.metadata.outputs.image }}" \
+                --format='{{index .RepoDigests 0}}' | cut -d'@' -f2)
+              
+              echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+          - name: Build Summary
+            run: |
+              {
+                echo "## Container Image"
+                echo ""
+                echo "| Item | Value |"
+                echo "|------|-------|"
+                echo "| Image | ${{ steps.metadata.outputs.image }} |"
+                echo "| Digest | ${{ steps.digest.outputs.digest }} |"
+              } >> "$GITHUB_STEP_SUMMARY"

@@ -7,7 +7,8 @@
             <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
-
+    <!-- Custom logging can be done using xml config, Logging for text framework can be done through logback test-->
+    <logger name="com.shree.started" level="info" />
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

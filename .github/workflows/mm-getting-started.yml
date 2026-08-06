@@ -1,0 +1,29 @@
+name: mm-getting-started
+
+on:
+  push:
+    branches:
+      - dev*
+      - feature*
+      - hotfix*
+    paths:
+      - mm-getting-started/**
+    branches-ignore:
+      - main
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable/build-and-push.yml
+    permissions:
+      contents: read
+      id-token: write
+
+    with:
+      working-directory: applications/mm-getting-started
+      java-version: "25"
+      java-distribution: "temurin"
+      gradle-task: "build"
+      acr-name: "crsharedprod87"
+      image-tag: ${{ github.sha }}
+
+    secrets: inherit
