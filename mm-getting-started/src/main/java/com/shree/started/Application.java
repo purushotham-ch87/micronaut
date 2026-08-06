@@ -16,6 +16,6 @@ public class Application {
 
         logger.info("Context can be accessed using: ApplicationContext applicationContext = Micronaut.build().start();");
 
-        logger.info("Micronaut.run() method is used to start the application and initialize the application context and returns ApplicationContext as value which is implemented as child class of Interface ApplicationContext.");
+        //logger.info("Micronaut.run() method is used to start the application and initialize the application context and returns ApplicationContext as value which is implemented as child class of Interface ApplicationContext.");
     }
 }
